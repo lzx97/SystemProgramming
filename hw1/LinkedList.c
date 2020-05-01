@@ -34,7 +34,9 @@ LinkedList AllocateLinkedList(void) {
 
   // Step 1.
   // initialize the newly allocated record structure
-
+  ll->num_elements = 0U;
+  ll->head = NULL;
+  ll->tail = NULL;
 
 
   // return our newly minted linked list
@@ -51,6 +53,10 @@ void FreeLinkedList(LinkedList list,
   // sweep through the list and free all of the nodes' payloads as
   // well as the nodes themselves
   while (list->head != NULL) {
+    LinkedListNodePtr oldHead = list->head;
+    list->head = list->head->next;
+    payload_free_function(oldHead->payload);
+    free(oldHead);
   }
 
   // free the list record
@@ -92,7 +98,12 @@ bool PushLinkedList(LinkedList list, void *payload) {
 
   // STEP 3.
   // typical case; list has >=1 elements
-
+  LinkedListNodePtr oldHead = list->head;
+  list->head = ln;
+  list->head->next = oldHead;
+  oldHead->prev = list->head;
+  list->head->prev = NULL;
+  list->num_elements += 1U;
 
 
   // return success
@@ -110,8 +121,21 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
   // and (b) the general case of a list with >=2 elements in it.
   // Be sure to call free() to deallocate the memory that was
   // previously allocated by PushLinkedList().
+  if (list->num_elements == 0) {
+    return false;
+  }
 
-
+  *payload_ptr = list->head->payload;
+  LinkedListNodePtr oldHead = list->head;
+  if (list->num_elements == 1) {
+    list->head = NULL;
+    list->tail = NULL;
+  } else {
+    list->head = list->head->next;
+    list->head->prev = NULL;
+  }
+  list->num_elements -= 1U;
+  free(oldHead);
 
   return true;
 }
@@ -123,7 +147,22 @@ bool AppendLinkedList(LinkedList list, void *payload) {
   // Step 5: implement AppendLinkedList.  It's kind of like
   // PushLinkedList, but obviously you need to add to the end
   // instead of the beginning.
+  LinkedListNodePtr ln = (LinkedListNodePtr) malloc(sizeof(LinkedListNode));
+  ln->payload = payload;
+  ln->next = NULL;
+  if (list->num_elements == 0) {
+    ln->prev = NULL;
+    list->head = ln;
+    list->tail = ln;
+    list->num_elements += 1U;
+    return true;
+  }
 
+  // num_elements >= 1
+  list->tail->next = ln;
+  ln->prev = list->tail;
+  list->tail = ln;
+  list->num_elements += 1U;
 
 
   return true;
@@ -135,8 +174,19 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
   Assert333(list != NULL);
 
   // Step 6: implement SliceLinkedList.
+  if (list->num_elements == 0) {
+    return false;
+  }
 
-
+  *payload_ptr = list->tail->payload;
+  if (list->num_elements == 1) {
+    list->head = NULL;
+    list->tail = NULL;
+  } else {
+    list->tail = list->tail->prev;
+    list->tail->next = NULL;
+  }
+  list->num_elements -= 1U;
 
   return true;
 }
